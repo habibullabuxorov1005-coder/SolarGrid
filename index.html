@@ -889,6 +889,7 @@ function renderPanelMap(panels) {
 function renderWeather(w) {
   const iconMap = {'01d':'☀️','02d':'🌤','03d':'⛅','04d':'☁️','09d':'🌧','10d':'🌦','11d':'⛈','13d':'❄️','50d':'🌫'};
   const icon = iconMap[w.icon] || w.icon || '🌡️';
+  const dayNight = w.is_day ? '🌞 Kunduz' : '🌙 Tun';
 
   document.getElementById('weather-content').innerHTML = `
     <div class="weather-main">
@@ -896,6 +897,7 @@ function renderWeather(w) {
       <div>
         <div class="weather-temp">${w.temp}°<span style="font-size:18px">C</span></div>
         <div class="weather-desc">${w.description}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${dayNight}</div>
       </div>
     </div>
     <div class="weather-stats">
@@ -903,12 +905,14 @@ function renderWeather(w) {
       <div class="wstat"><div class="wstat-label">UV indeks</div><div class="wstat-val">${w.uv_index}</div></div>
       <div class="wstat"><div class="wstat-label">Bulutlilik</div><div class="wstat-val">${w.clouds}%</div></div>
       <div class="wstat"><div class="wstat-label">Shamol</div><div class="wstat-val">${w.wind_speed} <span style="font-size:11px;color:var(--text3)">m/s</span></div></div>
+      <div class="wstat"><div class="wstat-label">🌅 Quyosh chiqishi</div><div class="wstat-val" style="font-size:13px">${w.sunrise || '—'}</div></div>
+      <div class="wstat"><div class="wstat-label">🌇 Quyosh botishi</div><div class="wstat-val" style="font-size:13px">${w.sunset || '—'}</div></div>
     </div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">3 kunlik prognoz</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">3 kunlik ishlab chiqarish prognozi</div>
     <div class="forecast">
       ${(w.forecast||[]).map(f=>`
         <div class="fc-item">
-          <span class="fc-day">${f.day}</span>
+          <span class="fc-day" style="min-width:80px">${f.day} <span style="color:var(--text3);font-size:10px">${f.temp}°</span></span>
           <div class="fc-bar-wrap"><div class="fc-bar" style="width:${f.production_estimate}%"></div></div>
           <span class="fc-pct" style="color:${f.production_estimate>70?'var(--green)':f.production_estimate>40?'var(--sun)':'var(--text2)'}">${f.production_estimate}%</span>
         </div>
