@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolarGrid — Monitoring</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0F1E;--surface:#111827;--surface2:#1F2937;--surface3:#374151;
+  --text:#F9FAFB;--text2:#9CA3AF;--text3:#6B7280;
+  --border:rgba(255,255,255,0.08);--sun:#F59E0B;--green:#10B981;--red:#EF4444;--orange:#F97316;--blue:#3B82F6;
+  --radius:14px;--radius-sm:8px;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100}
+.header-inner{max-width:1400px;margin:0 auto;height:58px;display:flex;align-items:center;gap:12px}
+.back-btn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 12px;color:var(--text2);font-size:12px;cursor:pointer;text-decoration:none;display:flex;align-items:center;gap:4px}
+.back-btn:hover{color:var(--text)}
+.logo-icon{width:30px;height:30px;background:linear-gradient(135deg,#F59E0B,#F97316);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.station-title{font-size:15px;font-weight:700}
+.station-city{font-size:11px;color:var(--text2)}
+.status-pill{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;color:var(--text2)}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.hbtn{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;margin-left:auto}
+.hbtn:hover{background:var(--surface3);color:var(--text)}
+.hbtn.sun{background:var(--sun);color:#000;border-color:var(--sun);font-weight:600}
+.main{max-width:1400px;margin:0 auto;padding:1.25rem 1.5rem}
+.summary-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:1.25rem}
+@media(max-width:900px){.summary-grid{grid-template-columns:repeat(2,1fr)}}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;position:relative;overflow:hidden}
+.sum-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sum-card.power::before{background:var(--sun)}
+.sum-card.eff::before{background:var(--green)}
+.sum-card.panels::before{background:var(--blue)}
+.sum-card.alerts::before{background:var(--red)}
+.sum-card.today::before{background:var(--orange)}
+.sum-label{font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.sum-value{font-size:24px;font-weight:700;font-family:var(--mono);line-height:1}
+.sum-unit{font-size:12px;font-weight:400;color:var(--text2);margin-left:2px}
+.sum-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.sum-card.power .sum-value{color:var(--sun)}
+.sum-card.eff .sum-value{color:var(--green)}
+.sum-card.alerts .sum-value{color:var(--red)}
+.sum-card.today .sum-value{color:var(--orange)}
+.content-grid{display:grid;grid-template-columns:1fr 300px;gap:1.25rem}
+@media(max-width:1100px){.content-grid{grid-template-columns:1fr}}
+.panel-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
+.section-title{font-size:14px;font-weight:600}
+.legend{display:flex;gap:12px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+.leg-dot{width:10px;height:10px;border-radius:3px}
+.panel-grid-wrap{overflow-x:auto;padding-bottom:4px}
+.panel-grid{display:inline-grid;gap:5px;min-width:max-content}
+.panel-cell{width:52px;height:38px;border-radius:5px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:transform .12s,box-shadow .12s;border:1.5px solid transparent}
+.panel-cell:hover{transform:scale(1.08);box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:2}
+.panel-cell .pid{font-size:9px;font-weight:600;opacity:.8;font-family:var(--mono)}
+.panel-cell .pw{font-size:10px;font-weight:700;font-family:var(--mono)}
+.panel-cell.normal{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:var(--green)}
+.panel-cell.dirty{background:rgba(245,158,11,.2);border-color:rgba(245,158,11,.5);color:var(--sun)}
+.panel-cell.fault{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.5);color:var(--red);animation:blink 1.5s infinite}
+.panel-cell.weak{background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.35);color:var(--orange)}
+.panel-cell.off{background:var(--surface2);border-color:var(--border);color:var(--text3)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.5}}
+.row-label{width:22px;height:38px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text3);font-family:var(--mono)}
+.tooltip{position:fixed;background:#1F2937;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;z-index:999;pointer-events:none;min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.5);display:none}
+.tooltip.show{display:block}
+.tip-id{font-size:13px;font-weight:700;margin-bottom:6px;font-family:var(--mono)}
+.tip-row{display:flex;justify-content:space-between;gap:12px;margin-bottom:2px;color:var(--text2)}
+.tip-row span:last-child{color:var(--text);font-weight:500}
+.tip-issue{margin-top:6px;padding:5px 8px;background:rgba(239,68,68,.1);border-radius:5px;color:var(--red);font-size:11px}
+.tip-issue.dirty{background:rgba(245,158,11,.1);color:var(--sun)}
+.right-col{display:flex;flex-direction:column;gap:1.25rem}
+.weather-card,.alerts-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
+.weather-main{display:flex;align-items:center;gap:12px;margin-bottom:1rem}
+.weather-icon{font-size:38px}
+.weather-temp{font-size:32px;font-weight:700;font-family:var(--mono)}
+.weather-desc{font-size:12px;color:var(--text2)}
+.weather-stats{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:1rem}
+.wstat{background:var(--surface2);border-radius:var(--radius-sm);padding:7px 9px}
+.wstat-label{font-size:10px;color:var(--text3);margin-bottom:2px}
+.wstat-val{font-size:13px;font-weight:600;font-family:var(--mono)}
+.forecast{display:flex;flex-direction:column;gap:5px}
+.fc-item{display:flex;align-items:center;justify-content:space-between;padding:5px 7px;background:var(--surface2);border-radius:var(--radius-sm);font-size:11px}
+.fc-day{color:var(--text2);min-width:75px}
+.fc-bar-wrap{flex:1;margin:0 8px;height:4px;background:var(--surface3);border-radius:2px}
+.fc-bar{height:100%;border-radius:2px;background:var(--sun)}
+.fc-pct{font-weight:600;font-family:var(--mono);min-width:32px;text-align:right}
+.alert-item{padding:9px 11px;border-radius:var(--radius-sm);margin-bottom:7px;border-left:3px solid}
+.alert-item.critical{background:rgba(239,68,68,.08);border-left-color:var(--red)}
+.alert-item.warning{background:rgba(245,158,11,.08);border-left-color:var(--sun)}
+.alert-title{font-size:12px;font-weight:600;margin-bottom:2px}
+.alert-item.critical .alert-title{color:var(--red)}
+.alert-item.warning .alert-title{color:var(--sun)}
+.alert-desc{font-size:11px;color:var(--text2);line-height:1.5;margin-bottom:3px}
+.alert-action{font-size:10px;background:var(--surface2);border-radius:4px;padding:2px 6px;color:var(--text3);display:inline-block}
+.no-alerts{text-align:center;padding:1.5rem;color:var(--text3);font-size:12px}
+.loading{display:flex;align-items:center;justify-content:center;padding:3rem;color:var(--text2);gap:10px}
+.spinner{width:20px;height:20px;border:2px solid var(--surface3);border-top-color:var(--sun);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.api-bar{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;margin-bottom:1.25rem;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text2)}
+.api-url{font-family:var(--mono);color:var(--blue);font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="dashboard.html" class="back-btn">← Orqaga</a>
+    <div class="logo-icon">☀️</div>
+    <div>
+      <div class="station-title" id="station-title">Yuklanmoqda...</div>
+      <div class="station-city" id="station-city"></div>
+    </div>
+    <div class="status-pill">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Yuklanmoqda...</span>
+    </div>
+    <button class="hbtn sun" onclick="refreshData()">↻ Yangilash</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="api-bar">
+    <span>🔗 Backend:</span>
+    <span class="api-url" id="api-url-display">—</span>
+    <span>•</span>
+    <span id="last-update">—</span>
+  </div>
+
+  <div class="summary-grid">
+    <div class="sum-card power"><div class="sum-label">Hozirgi quvvat</div><div class="sum-value" id="sum-power">—<span class="sum-unit">kW</span></div><div class="sum-sub" id="sum-cap">—</div></div>
+    <div class="sum-card eff"><div class="sum-label">Samaradorlik</div><div class="sum-value" id="sum-eff">—<span class="sum-unit">%</span></div><div class="sum-sub">Hozirgi holat</div></div>
+    <div class="sum-card panels"><div class="sum-label">Panellar</div><div class="sum-value" id="sum-panels">—</div><div class="sum-sub" id="sum-prob">—</div></div>
+    <div class="sum-card alerts"><div class="sum-label">Ogohlantirishlar</div><div class="sum-value" id="sum-alerts">—</div><div class="sum-sub">E'tibor kerak</div></div>
+    <div class="sum-card today"><div class="sum-label">Bugun</div><div class="sum-value" id="sum-today">—<span class="sum-unit">kWh</span></div><div class="sum-sub">Taxminiy</div></div>
+  </div>
+
+  <div class="content-grid">
+    <div class="panel-section">
+      <div class="section-header">
+        <div class="section-title">⚡ Panel Xaritasi</div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:rgba(16,185,129,.5)"></div>Normal</div>
+          <div class="leg-item"><div class="leg-dot" style="background:rgba(245,158,11,.6)"></div>Changlanish</div>
+          <div class="leg-item"><div class="leg-dot" style="background:rgba(249,115,22,.5)"></div>Sust</div>
+          <div class="leg-item"><div class="leg-dot" style="background:rgba(239,68,68,.5)"></div>Nosozlik</div>
+        </div>
+      </div>
+      <div id="panel-map"><div class="loading"><div class="spinner"></div> Yuklanmoqda...</div></div>
+    </div>
+
+    <div class="right-col">
+      <div class="weather-card">
+        <div class="section-title" style="margin-bottom:.75rem">🌤 Ob-havo</div>
+        <div id="weather-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+      <div class="alerts-card">
+        <div class="section-title" style="margin-bottom:.75rem">🔔 Ogohlantirishlar</div>
+        <div id="alerts-content"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const SUPABASE_URL = 'https://jotkjskrublgdfdmgjqa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZthweJ6NfQE9_o7RTAhJ2Q_ECAQHqZG';
+const API_BASE = 'https://solargrid-backend.onrender.com';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let station = null;
+let refreshInterval = null;
+
+const params = new URLSearchParams(window.location.search);
+const stationId = params.get('id');
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return window.location.href = 'index.html';
+  if (!stationId) return window.location.href = 'dashboard.html';
+
+  const { data, error } = await sb.from('stations').select('*').eq('id', stationId).single();
+  if (error || !data) return window.location.href = 'dashboard.html';
+
+  station = data;
+  document.getElementById('station-title').textContent = station.name;
+  document.getElementById('station-city').textContent = '📍 ' + (station.city || '');
+  document.getElementById('api-url-display').textContent = API_BASE;
+
+  // Backend ga stansiya konfiguratsiyasini yuborish
+  await configureBackend();
+  loadDashboard();
+  refreshInterval = setInterval(loadDashboard, 30000);
+}
+
+async function configureBackend() {
+  try {
+    await fetch(API_BASE + '/api/station/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: station.name,
+        location: { lat: station.lat, lon: station.lon, city: station.city },
+        totalPanels: station.total_panels,
+        rows: station.rows,
+        panelsPerRow: station.panels_per_row,
+        capacity_kw: station.capacity_kw,
+        api_type: station.api_type,
+        growatt: { username: station.growatt_user, password: station.growatt_pass, plant_id: station.growatt_plant_id },
+        huawei: { username: station.huawei_user, system_code: station.huawei_system_code, station_dn: station.huawei_station_dn },
+      })
+    });
+  } catch(e) {}
+}
+
+async function loadDashboard() {
+  try {
+    const res = await fetch(API_BASE + '/api/dashboard');
+    const data = await res.json();
+    if (!data.success) throw new Error(data.message);
+
+    document.getElementById('status-dot').style.background = 'var(--green)';
+    document.getElementById('status-text').textContent = 'Jonli';
+    document.getElementById('last-update').textContent = 'Yangilandi: ' + new Date().toLocaleTimeString('uz-UZ');
+
+    const s = data.summary;
+    document.getElementById('sum-power').innerHTML = `${s.total_power_kw}<span class="sum-unit">kW</span>`;
+    document.getElementById('sum-cap').textContent = `${s.capacity_kw} kW dan`;
+    document.getElementById('sum-eff').innerHTML = `${s.efficiency_pct}<span class="sum-unit">%</span>`;
+    document.getElementById('sum-panels').textContent = `${s.normal_panels}/${s.total_panels}`;
+    document.getElementById('sum-prob').textContent = `${s.problem_panels} muammo`;
+    document.getElementById('sum-alerts').textContent = s.alerts_count;
+    document.getElementById('sum-today').innerHTML = `${s.today_kwh}<span class="sum-unit">kWh</span>`;
+
+    renderPanelMap(data.panels);
+    renderWeather(data.weather);
+    renderAlerts(data.alerts);
+  } catch(err) {
+    document.getElementById('status-dot').style.background = 'var(--red)';
+    document.getElementById('status-text').textContent = 'Ulanish yo\'q';
+  }
+}
+
+function renderPanelMap(panels) {
+  const rows = [...new Set(panels.map(p=>p.row))].sort();
+  const cols = [...new Set(panels.map(p=>p.col))].sort((a,b)=>a-b);
+  const wrap = document.createElement('div');
+  wrap.className = 'panel-grid-wrap';
+  const inner = document.createElement('div');
+  inner.className = 'panel-grid';
+  inner.style.gridTemplateColumns = `22px repeat(${cols.length},52px)`;
+  inner.appendChild(Object.assign(document.createElement('div'),{style:'width:22px'}));
+  cols.forEach(c=>{
+    const lbl=document.createElement('div');
+    lbl.style.cssText='text-align:center;font-size:10px;color:var(--text3);padding-bottom:3px;font-family:monospace';
+    lbl.textContent=c; inner.appendChild(lbl);
+  });
+  rows.forEach(row=>{
+    const rl=document.createElement('div'); rl.className='row-label'; rl.textContent=row; inner.appendChild(rl);
+    cols.forEach(col=>{
+      const panel=panels.find(p=>p.row===row&&p.col===col);
+      const cell=document.createElement('div');
+      cell.className='panel-cell '+(panel?panel.status:'off');
+      if(panel){
+        cell.innerHTML=`<span class="pid">${panel.id}</span><span class="pw">${panel.power_w>0?Math.round(panel.power_w)+'W':'—'}</span>`;
+        cell.addEventListener('mouseenter',e=>showTooltip(e,panel));
+        cell.addEventListener('mousemove',e=>moveTooltip(e));
+        cell.addEventListener('mouseleave',hideTooltip);
+      } else { cell.innerHTML='<span class="pid">—</span>'; }
+      inner.appendChild(cell);
+    });
+  });
+  wrap.appendChild(inner);
+  const container=document.getElementById('panel-map');
+  container.innerHTML=''; container.appendChild(wrap);
+}
+
+function renderWeather(w) {
+  const iconMap={'01d':'☀️','02d':'🌤','03d':'⛅','04d':'☁️','09d':'🌧','10d':'🌦','11d':'⛈','13d':'❄️','50d':'🌫','01n':'🌙','02n':'🌥','03n':'☁️','04n':'☁️'};
+  const icon=iconMap[w.icon]||'🌡️';
+  document.getElementById('weather-content').innerHTML=`
+    <div class="weather-main">
+      <div class="weather-icon">${icon}</div>
+      <div>
+        <div class="weather-temp">${w.temp}°C</div>
+        <div class="weather-desc">${w.description}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${w.is_day?'🌞 Kunduz':'🌙 Tun'}</div>
+      </div>
+    </div>
+    <div class="weather-stats">
+      <div class="wstat"><div class="wstat-label">Radiatsiya</div><div class="wstat-val">${w.solar_radiation} W/m²</div></div>
+      <div class="wstat"><div class="wstat-label">UV</div><div class="wstat-val">${w.uv_index}</div></div>
+      <div class="wstat"><div class="wstat-label">Bulutlilik</div><div class="wstat-val">${w.clouds}%</div></div>
+      <div class="wstat"><div class="wstat-label">Shamol</div><div class="wstat-val">${w.wind_speed} m/s</div></div>
+      <div class="wstat"><div class="wstat-label">🌅 Chiqish</div><div class="wstat-val" style="font-size:12px">${w.sunrise||'—'}</div></div>
+      <div class="wstat"><div class="wstat-label">🌇 Botish</div><div class="wstat-val" style="font-size:12px">${w.sunset||'—'}</div></div>
+    </div>
+    <div style="font-size:10px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">3 kunlik prognoz</div>
+    <div class="forecast">
+      ${(w.forecast||[]).map(f=>`
+        <div class="fc-item">
+          <span class="fc-day">${f.day} <span style="color:var(--text3)">${f.temp}°</span></span>
+          <div class="fc-bar-wrap"><div class="fc-bar" style="width:${f.production_estimate}%"></div></div>
+          <span class="fc-pct" style="color:${f.production_estimate>70?'var(--green)':f.production_estimate>40?'var(--sun)':'var(--text2)'}">${f.production_estimate}%</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderAlerts(alerts) {
+  const c=document.getElementById('alerts-content');
+  if(!alerts.length){ c.innerHTML='<div class="no-alerts">✅ Hamma narsa normal</div>'; return; }
+  c.innerHTML=alerts.map(a=>`
+    <div class="alert-item ${a.severity}">
+      <div class="alert-title">${a.type==='wire_cut'?'⚡':a.type==='dirty'?'🌫':a.type==='fault'?'❌':'⚠️'} ${a.title}</div>
+      <div class="alert-desc">${a.description}</div>
+      <span class="alert-action">→ ${a.action}</span>
+    </div>
+  `).join('');
+}
+
+function showTooltip(e,panel) {
+  const tip=document.getElementById('tooltip');
+  const sl={normal:'Normal ✓',dirty:'Changlanish ⚠️',fault:'Nosozlik ❌',weak:'Sust ⚠️'};
+  tip.innerHTML=`
+    <div class="tip-id">Panel ${panel.id}</div>
+    <div class="tip-row"><span>Quvvat</span><span>${panel.power_w} W</span></div>
+    <div class="tip-row"><span>Kuchlanish</span><span>${panel.voltage} V</span></div>
+    <div class="tip-row"><span>Tok</span><span>${panel.current} A</span></div>
+    <div class="tip-row"><span>Harorat</span><span>${panel.temperature}°C</span></div>
+    <div class="tip-row"><span>Samaradorlik</span><span>${panel.efficiency}%</span></div>
+    <div class="tip-row"><span>Holat</span><span>${sl[panel.status]||panel.status}</span></div>
+    ${panel.issue?`<div class="tip-issue ${panel.status==='dirty'?'dirty':''}">${panel.issue}</div>`:''}
+  `;
+  tip.classList.add('show'); moveTooltip(e);
+}
+function moveTooltip(e){
+  const tip=document.getElementById('tooltip');
+  tip.style.left=Math.min(e.clientX+14,window.innerWidth-200)+'px';
+  tip.style.top=Math.min(e.clientY+14,window.innerHeight-220)+'px';
+}
+function hideTooltip(){document.getElementById('tooltip').classList.remove('show')}
+function refreshData(){loadDashboard()}
+
+init();
+</script>
+</body>
+</html>

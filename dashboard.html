@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SolarGrid — Stansiyalarim</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0F1E;--surface:#111827;--surface2:#1F2937;--surface3:#374151;
+  --text:#F9FAFB;--text2:#9CA3AF;--text3:#6B7280;
+  --border:rgba(255,255,255,0.08);--sun:#F59E0B;--green:#10B981;--red:#EF4444;--blue:#3B82F6;
+  --radius:14px;--radius-sm:8px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 1.5rem;position:sticky;top:0;z-index:100}
+.header-inner{max-width:1100px;margin:0 auto;height:58px;display:flex;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,#F59E0B,#F97316);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px}
+.logo h1{font-size:16px;font-weight:700}
+.user-info{margin-left:auto;display:flex;align-items:center;gap:10px}
+.user-email{font-size:12px;color:var(--text2)}
+.btn-out{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 12px;font-size:12px;color:var(--text2);cursor:pointer;font-family:inherit}
+.btn-out:hover{background:var(--surface2);color:var(--text)}
+.main{max-width:1100px;margin:0 auto;padding:1.5rem 1rem}
+.page-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
+.stations-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.station-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:border-color .15s,box-shadow .15s;position:relative}
+.station-card:hover{border-color:var(--sun);box-shadow:0 2px 16px rgba(245,158,11,.1)}
+.station-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#F59E0B,#F97316);border-radius:var(--radius) var(--radius) 0 0}
+.sc-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sc-icon{width:40px;height:40px;background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(249,115,22,.2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.sc-name{font-size:15px;font-weight:600;margin-bottom:2px}
+.sc-city{font-size:12px;color:var(--text2)}
+.sc-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.sc-stat{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px}
+.sc-stat-label{font-size:10px;color:var(--text3);margin-bottom:2px}
+.sc-stat-val{font-size:15px;font-weight:700;font-family:'JetBrains Mono',monospace}
+.sc-footer{display:flex;align-items:center;justify-content:space-between}
+.sc-panels{font-size:12px;color:var(--text2)}
+.sc-open{background:var(--sun);color:#000;border:none;border-radius:var(--radius-sm);padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.sc-delete{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:4px;border-radius:4px}
+.sc-delete:hover{color:var(--red)}
+.add-card{background:none;border:2px dashed var(--border);border-radius:var(--radius);padding:18px;cursor:pointer;transition:border-color .15s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:160px}
+.add-card:hover{border-color:var(--sun)}
+.add-icon{font-size:32px;opacity:.4}
+.add-text{font-size:14px;color:var(--text2)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:440px;max-height:90vh;overflow-y:auto}
+.modal-box h2{font-size:16px;font-weight:700;margin-bottom:1.25rem}
+.field{margin-bottom:12px}
+.field label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.field input,.field select{width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:inherit;transition:border-color .15s}
+.field input:focus,.field select:focus{outline:none;border-color:var(--sun)}
+.field select option{background:var(--surface2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem}
+.btn-primary{background:var(--sun);color:#000;border:none;padding:8px 20px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn-sec{background:var(--surface2);border:1px solid var(--border);padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;color:var(--text2);cursor:pointer;font-family:inherit}
+.api-fields{display:none}
+.api-fields.show{display:block}
+.api-fields h3{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:12px 0 8px;padding-top:12px;border-top:1px solid var(--border)}
+.loading{text-align:center;padding:3rem;color:var(--text2)}
+.empty{text-align:center;padding:3rem;color:var(--text2)}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.3}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon">☀️</div>
+      <h1>SolarGrid</h1>
+    </div>
+    <div class="user-info">
+      <span class="user-email" id="user-email"></span>
+      <button class="btn-out" onclick="logout()">Chiqish</button>
+    </div>
+  </div>
+</header>
+
+<div class="main">
+  <div class="page-title">Mening stansiyalarim</div>
+  <div class="page-sub">Quyosh stansiyalaringizni qo'shing va monitoring qiling</div>
+
+  <div class="stations-grid" id="stations-grid">
+    <div class="loading">⏳ Yuklanmoqda...</div>
+  </div>
+</div>
+
+<!-- Add station modal -->
+<div class="modal-overlay" id="modal" onclick="handleOverlay(event)">
+  <div class="modal-box">
+    <h2>➕ Yangi stansiya qo'shish</h2>
+
+    <div class="field"><label>Stansiya nomi</label><input type="text" id="s-name" placeholder="G'uzor Quyosh Stansiyasi"></div>
+    <div class="field"><label>Shahar</label><input type="text" id="s-city" placeholder="G'uzor"></div>
+
+    <div class="grid2">
+      <div class="field"><label>Kenglik (lat)</label><input type="number" id="s-lat" placeholder="38.6169" step="0.0001"></div>
+      <div class="field"><label>Uzunlik (lon)</label><input type="number" id="s-lon" placeholder="66.2472" step="0.0001"></div>
+    </div>
+
+    <div class="grid3">
+      <div class="field"><label>Qatorlar</label><input type="number" id="s-rows" value="6" min="1"></div>
+      <div class="field"><label>Panel/qator</label><input type="number" id="s-cols" value="8" min="1"></div>
+      <div class="field"><label>Quvvat (kW)</label><input type="number" id="s-kw" value="24" min="1"></div>
+    </div>
+
+    <div class="field">
+      <label>Inverter turi</label>
+      <select id="s-api" onchange="toggleApi()">
+        <option value="simulation">🧪 Simulyatsiya</option>
+        <option value="growatt">🟢 Growatt</option>
+        <option value="huawei">🔴 Huawei FusionSolar</option>
+      </select>
+    </div>
+
+    <div class="api-fields" id="growatt-fields">
+      <h3>Growatt ma'lumotlari</h3>
+      <div class="field"><label>Email</label><input type="text" id="s-gr-user" placeholder="email@example.com"></div>
+      <div class="field"><label>Parol</label><input type="password" id="s-gr-pass" placeholder="••••••••"></div>
+      <div class="field"><label>Plant ID</label><input type="text" id="s-gr-plant" placeholder="123456"></div>
+    </div>
+
+    <div class="api-fields" id="huawei-fields">
+      <h3>Huawei ma'lumotlari</h3>
+      <div class="field"><label>Username</label><input type="text" id="s-hw-user" placeholder="username"></div>
+      <div class="field"><label>System Code</label><input type="password" id="s-hw-code" placeholder="••••••••"></div>
+      <div class="field"><label>Station DN</label><input type="text" id="s-hw-dn" placeholder="NE=12345"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-sec" onclick="closeModal()">Bekor</button>
+      <button class="btn-primary" onclick="addStation()">Qo'shish</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://jotkjskrublgdfdmgjqa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZthweJ6NfQE9_o7RTAhJ2Q_ECAQHqZG';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return window.location.href = 'index.html';
+  currentUser = session.user;
+  document.getElementById('user-email').textContent = currentUser.email;
+  loadStations();
+}
+
+async function loadStations() {
+  const { data, error } = await sb.from('stations').select('*').eq('owner_id', currentUser.id).order('created_at');
+  const grid = document.getElementById('stations-grid');
+
+  if (error) { grid.innerHTML = '<div class="empty">Xato yuz berdi</div>'; return; }
+
+  let html = '';
+  (data || []).forEach(s => {
+    html += `
+      <div class="station-card" onclick="openStation('${s.id}')">
+        <div class="sc-top">
+          <div class="sc-icon">⚡</div>
+          <div>
+            <div class="sc-name">${s.name}</div>
+            <div class="sc-city">📍 ${s.city || '—'}</div>
+          </div>
+          <button class="sc-delete" onclick="deleteStation(event,'${s.id}')" title="O'chirish">🗑</button>
+        </div>
+        <div class="sc-stats">
+          <div class="sc-stat"><div class="sc-stat-label">Panellar</div><div class="sc-stat-val">${s.total_panels}</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">Quvvat</div><div class="sc-stat-val">${s.capacity_kw} kW</div></div>
+        </div>
+        <div class="sc-footer">
+          <span class="sc-panels"><span class="status-dot"></span>${s.api_type === 'simulation' ? 'Simulyatsiya' : s.api_type}</span>
+          <button class="sc-open" onclick="openStation('${s.id}')">Ochish →</button>
+        </div>
+      </div>
+    `;
+  });
+
+  html += `
+    <div class="add-card" onclick="openModal()">
+      <div class="add-icon">➕</div>
+      <div class="add-text">Yangi stansiya qo'shish</div>
+    </div>
+  `;
+
+  grid.innerHTML = html;
+}
+
+function openStation(id) {
+  window.location.href = `monitor.html?id=${id}`;
+}
+
+async function deleteStation(e, id) {
+  e.stopPropagation();
+  if (!confirm('Stansiyani o\'chirishni tasdiqlaysizmi?')) return;
+  await sb.from('stations').delete().eq('id', id);
+  loadStations();
+}
+
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function handleOverlay(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+function toggleApi() {
+  const type = document.getElementById('s-api').value;
+  document.getElementById('growatt-fields').classList.toggle('show', type === 'growatt');
+  document.getElementById('huawei-fields').classList.toggle('show', type === 'huawei');
+}
+
+async function addStation() {
+  const name = document.getElementById('s-name').value.trim();
+  const city = document.getElementById('s-city').value.trim();
+  const lat = parseFloat(document.getElementById('s-lat').value) || 38.6169;
+  const lon = parseFloat(document.getElementById('s-lon').value) || 66.2472;
+  const rows = parseInt(document.getElementById('s-rows').value) || 6;
+  const cols = parseInt(document.getElementById('s-cols').value) || 8;
+  const kw = parseFloat(document.getElementById('s-kw').value) || 24;
+  const api = document.getElementById('s-api').value;
+
+  if (!name) return alert('Stansiya nomini kiriting');
+
+  const station = {
+    owner_id: currentUser.id,
+    name, city, lat, lon,
+    total_panels: rows * cols,
+    rows, panels_per_row: cols,
+    capacity_kw: kw,
+    api_type: api,
+    growatt_user: document.getElementById('s-gr-user').value,
+    growatt_pass: document.getElementById('s-gr-pass').value,
+    growatt_plant_id: document.getElementById('s-gr-plant').value,
+    huawei_user: document.getElementById('s-hw-user').value,
+    huawei_system_code: document.getElementById('s-hw-code').value,
+    huawei_station_dn: document.getElementById('s-hw-dn').value,
+  };
+
+  const { error } = await sb.from('stations').insert(station);
+  if (error) return alert('Xato: ' + error.message);
+  closeModal();
+  loadStations();
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+init();
+</script>
+</body>
+</html>
