@@ -390,14 +390,39 @@ function buildWeather(owm, meteo) {
 
 // ─── Inverter dan ma'lumot olish ─────────────────────────
 async function fetchInverterData(weather) {
-  // Hozircha backend orqali (keyinchalik to'g'ridan-to'g'ri API)
+  const backendUrl = station.backend_url;
+  if (!backendUrl) return generateSimulation(weather.solar_radiation);
   try {
-    const res = await fetch('https://solargrid-backend.onrender.com/api/panels');
+    const res = await fetch(backendUrl + '/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: inverterConfig.type,
+        config: {
+          username: station.growatt_user,
+          password: station.growatt_pass,
+          plant_id: station.growatt_plant_id,
+          system_code: station.huawei_system_code,
+          station_dn: station.huawei_station_dn,
+          api_id: station.growatt_user,
+          api_secret: station.growatt_pass,
+          station_id: station.growatt_plant_id,
+          sn: station.growatt_plant_id,
+          rows: station.rows,
+          panels_per_row: station.panels_per_row,
+          capacity_kw: station.capacity_kw,
+        },
+        lat: station.lat,
+        lon: station.lon,
+      })
+    });
     const data = await res.json();
-    if (data.success) return data.data;
-  } catch(e) {}
-  // Backend ishlamasa simulyatsiya
-  return generateSimulation(weather.solar_radiation);
+    if (data.success) return data.panels;
+    throw new Error(data.message);
+  } catch(e) {
+    console.warn('Inverter xatosi:', e.message);
+    return generateSimulation(weather.solar_radiation);
+  }
 }
 
 // ─── Simulyatsiya ────────────────────────────────────────
