@@ -117,24 +117,78 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
     <div class="field">
       <label>Inverter turi</label>
       <select id="s-api" onchange="toggleApi()">
-        <option value="simulation">🧪 Simulyatsiya</option>
+        <option value="simulation">🧪 Simulyatsiya (test)</option>
         <option value="growatt">🟢 Growatt</option>
         <option value="huawei">🔴 Huawei FusionSolar</option>
+        <option value="solis">🔵 Solis</option>
+        <option value="deye">🟡 Deye</option>
+        <option value="sma">⚫ SMA</option>
+        <option value="custom">🔧 Boshqa (Custom API)</option>
       </select>
     </div>
 
+    <!-- Growatt -->
     <div class="api-fields" id="growatt-fields">
-      <h3>Growatt ma'lumotlari</h3>
-      <div class="field"><label>Email</label><input type="text" id="s-gr-user" placeholder="email@example.com"></div>
+      <h3>Growatt — API ma'lumotlari</h3>
+      <div class="field"><label>Backend URL</label><input type="text" id="s-gr-url" placeholder="https://sizning-server.up.railway.app">
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">Growatt API brauzerdan ishlamaydi — backend server kerak</div>
+      </div>
+      <div class="field"><label>Email (username)</label><input type="text" id="s-gr-user" placeholder="email@example.com"></div>
       <div class="field"><label>Parol</label><input type="password" id="s-gr-pass" placeholder="••••••••"></div>
-      <div class="field"><label>Plant ID</label><input type="text" id="s-gr-plant" placeholder="123456"></div>
+      <div class="field"><label>Plant ID</label><input type="text" id="s-gr-plant" placeholder="123456">
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">Growatt ilovasi → Settings → Plant Info da topasiz</div>
+      </div>
     </div>
 
+    <!-- Huawei -->
     <div class="api-fields" id="huawei-fields">
-      <h3>Huawei ma'lumotlari</h3>
+      <h3>Huawei FusionSolar — API ma'lumotlari</h3>
+      <div class="field"><label>Backend URL</label><input type="text" id="s-hw-url" placeholder="https://sizning-server.up.railway.app">
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">Huawei API brauzerdan ishlamaydi — backend server kerak</div>
+      </div>
       <div class="field"><label>Username</label><input type="text" id="s-hw-user" placeholder="username"></div>
-      <div class="field"><label>System Code</label><input type="password" id="s-hw-code" placeholder="••••••••"></div>
+      <div class="field"><label>System Code</label><input type="password" id="s-hw-code" placeholder="••••••••">
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">FusionSolar → Me → System → System Code</div>
+      </div>
       <div class="field"><label>Station DN</label><input type="text" id="s-hw-dn" placeholder="NE=12345"></div>
+    </div>
+
+    <!-- Solis -->
+    <div class="api-fields" id="solis-fields">
+      <h3>Solis Cloud — API ma'lumotlari</h3>
+      <div class="field"><label>Backend URL</label><input type="text" id="s-sl-url" placeholder="https://sizning-server.up.railway.app"></div>
+      <div class="field"><label>API ID</label><input type="text" id="s-sl-id" placeholder="API ID">
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">Solis Cloud → Account → API Management</div>
+      </div>
+      <div class="field"><label>API Secret</label><input type="password" id="s-sl-secret" placeholder="••••••••"></div>
+      <div class="field"><label>Station ID</label><input type="text" id="s-sl-station" placeholder="Station ID"></div>
+    </div>
+
+    <!-- Deye -->
+    <div class="api-fields" id="deye-fields">
+      <h3>Deye Cloud — API ma'lumotlari</h3>
+      <div class="field"><label>Backend URL</label><input type="text" id="s-dy-url" placeholder="https://sizning-server.up.railway.app"></div>
+      <div class="field"><label>Email</label><input type="text" id="s-dy-user" placeholder="email@example.com"></div>
+      <div class="field"><label>Parol</label><input type="password" id="s-dy-pass" placeholder="••••••••"></div>
+      <div class="field"><label>Serial Number (SN)</label><input type="text" id="s-dy-sn" placeholder="Inverter serial number"></div>
+    </div>
+
+    <!-- SMA -->
+    <div class="api-fields" id="sma-fields">
+      <h3>SMA Sunny Portal — API ma'lumotlari</h3>
+      <div class="field"><label>Backend URL</label><input type="text" id="s-sma-url" placeholder="https://sizning-server.up.railway.app"></div>
+      <div class="field"><label>Email</label><input type="text" id="s-sma-user" placeholder="email@example.com"></div>
+      <div class="field"><label>Parol</label><input type="password" id="s-sma-pass" placeholder="••••••••"></div>
+      <div class="field"><label>Plant ID</label><input type="text" id="s-sma-plant" placeholder="Plant ID"></div>
+    </div>
+
+    <!-- Custom -->
+    <div class="api-fields" id="custom-fields">
+      <h3>Custom API — O'z serveri</h3>
+      <div class="field"><label>API URL</label><input type="text" id="s-cu-url" placeholder="https://sizning-api.com/data">
+        <div style="font-size:10px;color:var(--text3);margin-top:3px">JSON formatda panel ma'lumotlari qaytaruvchi API</div>
+      </div>
+      <div class="field"><label>API Key (ixtiyoriy)</label><input type="text" id="s-cu-key" placeholder="Bearer token yoki API key"></div>
     </div>
 
     <div class="modal-actions">
@@ -216,8 +270,9 @@ function handleOverlay(e) { if (e.target === document.getElementById('modal')) c
 
 function toggleApi() {
   const type = document.getElementById('s-api').value;
-  document.getElementById('growatt-fields').classList.toggle('show', type === 'growatt');
-  document.getElementById('huawei-fields').classList.toggle('show', type === 'huawei');
+  ['growatt','huawei','solis','deye','sma','custom'].forEach(t => {
+    document.getElementById(t+'-fields').classList.toggle('show', type === t);
+  });
 }
 
 async function addStation() {
@@ -232,6 +287,7 @@ async function addStation() {
 
   if (!name) return alert('Stansiya nomini kiriting');
 
+  const g = id => document.getElementById(id)?.value || '';
   const station = {
     owner_id: currentUser.id,
     name, city, lat, lon,
@@ -239,12 +295,13 @@ async function addStation() {
     rows, panels_per_row: cols,
     capacity_kw: kw,
     api_type: api,
-    growatt_user: document.getElementById('s-gr-user').value,
-    growatt_pass: document.getElementById('s-gr-pass').value,
-    growatt_plant_id: document.getElementById('s-gr-plant').value,
-    huawei_user: document.getElementById('s-hw-user').value,
-    huawei_system_code: document.getElementById('s-hw-code').value,
-    huawei_station_dn: document.getElementById('s-hw-dn').value,
+    backend_url: g('s-gr-url') || g('s-hw-url') || g('s-sl-url') || g('s-dy-url') || g('s-sma-url') || g('s-cu-url') || '',
+    growatt_user: g('s-gr-user'),
+    growatt_pass: g('s-gr-pass'),
+    growatt_plant_id: g('s-gr-plant'),
+    huawei_user: g('s-hw-user'),
+    huawei_system_code: g('s-hw-code'),
+    huawei_station_dn: g('s-hw-dn'),
   };
 
   const { error } = await sb.from('stations').insert(station);
