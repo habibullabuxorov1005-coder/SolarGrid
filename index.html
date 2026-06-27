@@ -3,1047 +3,123 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SolarGrid — Quyosh Stansiyasi Monitoringi</title>
+<title>SolarGrid — Kirish</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-:root {
-  --sun: #F59E0B;
-  --sun-light: #FEF3C7;
-  --green: #10B981;
-  --green-light: #D1FAE5;
-  --red: #EF4444;
-  --red-light: #FEE2E2;
-  --orange: #F97316;
-  --orange-light: #FFEDD5;
-  --blue: #3B82F6;
-  --blue-light: #DBEAFE;
-  --bg: #0A0F1E;
-  --surface: #111827;
-  --surface2: #1F2937;
-  --surface3: #374151;
-  --text: #F9FAFB;
-  --text2: #9CA3AF;
-  --text3: #6B7280;
-  --border: rgba(255,255,255,0.08);
-  --radius: 14px;
-  --radius-sm: 8px;
-  --mono: 'JetBrains Mono', monospace;
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0A0F1E;--surface:#111827;--surface2:#1F2937;
+  --text:#F9FAFB;--text2:#9CA3AF;--text3:#6B7280;
+  --border:rgba(255,255,255,0.08);--sun:#F59E0B;--green:#10B981;--red:#EF4444;
+  --radius:14px;--radius-sm:8px;
 }
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Inter', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  font-size: 14px;
-}
-
-/* ── Header ── */
-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 0 1.5rem;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-.header-inner {
-  max-width: 1400px;
-  margin: 0 auto;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.logo-icon {
-  width: 34px;
-  height: 34px;
-  background: linear-gradient(135deg, #F59E0B, #F97316);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-}
-.logo h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
-.logo span { font-size: 11px; color: var(--text2); display: block; }
-.header-center { flex: 1; display: flex; justify-content: center; }
-.status-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 5px 14px;
-  font-size: 12px;
-  color: var(--text2);
-}
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--green);
-  animation: pulse 2s infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-.header-right { margin-left: auto; display: flex; gap: 8px; }
-.hbtn {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 6px 14px;
-  color: var(--text2);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-}
-.hbtn:hover { background: var(--surface3); color: var(--text); }
-.hbtn.active { background: var(--sun); color: #000; border-color: var(--sun); font-weight: 600; }
-
-/* ── Layout ── */
-.main {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 1.25rem 1.5rem;
-}
-
-/* ── Summary cards ── */
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  margin-bottom: 1.25rem;
-}
-@media (max-width: 900px) { .summary-grid { grid-template-columns: repeat(2, 1fr); } }
-.sum-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  position: relative;
-  overflow: hidden;
-}
-.sum-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-}
-.sum-card.power::before { background: var(--sun); }
-.sum-card.efficiency::before { background: var(--green); }
-.sum-card.panels::before { background: var(--blue); }
-.sum-card.alerts::before { background: var(--red); }
-.sum-card.today::before { background: var(--orange); }
-.sum-label { font-size: 11px; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-.sum-value { font-size: 26px; font-weight: 700; font-family: var(--mono); line-height: 1; }
-.sum-unit { font-size: 13px; font-weight: 400; color: var(--text2); margin-left: 2px; }
-.sum-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-.sum-card.alerts .sum-value { color: var(--red); }
-.sum-card.power .sum-value { color: var(--sun); }
-.sum-card.efficiency .sum-value { color: var(--green); }
-.sum-card.today .sum-value { color: var(--orange); }
-
-/* ── Grid layout ── */
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 1.25rem;
-}
-@media (max-width: 1100px) { .content-grid { grid-template-columns: 1fr; } }
-
-/* ── Panel map ── */
-.panel-section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.25rem;
-}
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-.section-title {
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.legend {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.leg-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: var(--text2);
-}
-.leg-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-}
-.panel-grid-wrap {
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-.panel-grid {
-  display: inline-grid;
-  gap: 5px;
-  min-width: max-content;
-}
-.panel-cell {
-  width: 52px;
-  height: 38px;
-  border-radius: 5px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.12s, box-shadow 0.12s;
-  position: relative;
-  border: 1.5px solid transparent;
-}
-.panel-cell:hover {
-  transform: scale(1.08);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-  z-index: 2;
-}
-.panel-cell .pid { font-size: 9px; font-weight: 600; opacity: 0.8; font-family: var(--mono); }
-.panel-cell .pw { font-size: 10px; font-weight: 700; font-family: var(--mono); }
-.panel-cell.normal { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.3); color: var(--green); }
-.panel-cell.dirty { background: rgba(245,158,11,0.2); border-color: rgba(245,158,11,0.5); color: var(--sun); }
-.panel-cell.fault { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); color: var(--red); animation: blink 1.5s infinite; }
-.panel-cell.weak { background: rgba(249,115,22,0.15); border-color: rgba(249,115,22,0.35); color: var(--orange); }
-.panel-cell.off { background: var(--surface2); border-color: var(--border); color: var(--text3); }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
-.row-label {
-  width: 22px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text3);
-  font-family: var(--mono);
-}
-
-/* ── Tooltip ── */
-.tooltip {
-  position: fixed;
-  background: #1F2937;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-size: 12px;
-  z-index: 999;
-  pointer-events: none;
-  min-width: 180px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-  display: none;
-}
-.tooltip.show { display: block; }
-.tip-id { font-size: 13px; font-weight: 700; margin-bottom: 6px; font-family: var(--mono); }
-.tip-row { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 2px; color: var(--text2); }
-.tip-row span:last-child { color: var(--text); font-weight: 500; }
-.tip-issue { margin-top: 6px; padding: 5px 8px; background: rgba(239,68,68,0.1); border-radius: 5px; color: var(--red); font-size: 11px; }
-.tip-issue.dirty { background: rgba(245,158,11,0.1); color: var(--sun); }
-
-/* ── Right sidebar ── */
-.right-col { display: flex; flex-direction: column; gap: 1.25rem; }
-
-/* Weather card */
-.weather-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.25rem;
-}
-.weather-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 1rem;
-}
-.weather-icon { font-size: 42px; }
-.weather-temp { font-size: 36px; font-weight: 700; font-family: var(--mono); }
-.weather-desc { font-size: 12px; color: var(--text2); }
-.weather-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
-.wstat {
-  background: var(--surface2);
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-}
-.wstat-label { font-size: 10px; color: var(--text3); margin-bottom: 2px; }
-.wstat-val { font-size: 14px; font-weight: 600; font-family: var(--mono); }
-.forecast { display: flex; flex-direction: column; gap: 6px; }
-.fc-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 8px;
-  background: var(--surface2);
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-}
-.fc-day { color: var(--text2); }
-.fc-bar-wrap { flex: 1; margin: 0 10px; height: 4px; background: var(--surface3); border-radius: 2px; }
-.fc-bar { height: 100%; border-radius: 2px; background: var(--sun); }
-.fc-pct { font-weight: 600; font-family: var(--mono); min-width: 36px; text-align: right; }
-
-/* Alerts card */
-.alerts-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.25rem;
-  flex: 1;
-}
-.alert-item {
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 8px;
-  border-left: 3px solid;
-}
-.alert-item.critical { background: rgba(239,68,68,0.08); border-left-color: var(--red); }
-.alert-item.warning { background: rgba(245,158,11,0.08); border-left-color: var(--sun); }
-.alert-title { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
-.alert-item.critical .alert-title { color: var(--red); }
-.alert-item.warning .alert-title { color: var(--sun); }
-.alert-desc { font-size: 11px; color: var(--text2); line-height: 1.5; margin-bottom: 4px; }
-.alert-action {
-  font-size: 10px;
-  background: var(--surface2);
-  border-radius: 4px;
-  padding: 3px 7px;
-  color: var(--text3);
-  display: inline-block;
-}
-.no-alerts {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text3);
-  font-size: 13px;
-}
-.no-alerts-icon { font-size: 32px; margin-bottom: 8px; }
-
-/* Connection modal */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.7);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 200;
-  padding: 1rem;
-}
-.modal-overlay.open { display: flex; }
-.modal-box {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  width: 100%;
-  max-width: 440px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-.modal-box h2 { font-size: 16px; font-weight: 700; margin-bottom: 1.25rem; }
-.field { margin-bottom: 12px; }
-.field label { font-size: 11px; color: var(--text2); display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
-.field input, .field select {
-  width: 100%;
-  padding: 9px 12px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 13px;
-  font-family: var(--mono);
-  transition: border-color 0.15s;
-}
-.field input:focus, .field select:focus { outline: none; border-color: var(--sun); }
-.field select option { background: var(--surface2); }
-.api-section { display: none; }
-.api-section.show { display: block; }
-.api-section h3 { font-size: 12px; color: var(--text2); margin: 12px 0 8px; padding-top: 12px; border-top: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
-.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 1.25rem; }
-.btn-primary {
-  background: var(--sun);
-  color: #000;
-  border: none;
-  padding: 8px 20px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-  transition: opacity 0.15s;
-}
-.btn-primary:hover { opacity: 0.85; }
-.btn-sec {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  color: var(--text2);
-  cursor: pointer;
-  font-family: inherit;
-}
-.btn-test {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  color: var(--blue);
-  cursor: pointer;
-  font-family: inherit;
-  margin-right: auto;
-}
-.test-result {
-  margin-top: 8px;
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  display: none;
-}
-.test-result.success { background: rgba(16,185,129,0.1); color: var(--green); display: block; }
-.test-result.error { background: rgba(239,68,68,0.1); color: var(--red); display: block; }
-
-/* Loading & error */
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  color: var(--text2);
-  gap: 10px;
-}
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--surface3);
-  border-top-color: var(--sun);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Toast */
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 10px 16px;
-  font-size: 13px;
-  z-index: 300;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: all 0.2s;
-  pointer-events: none;
-}
-.toast.show { opacity: 1; transform: translateY(0); }
-
-/* API status bar */
-.api-bar {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 8px 14px;
-  margin-bottom: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: var(--text2);
-}
-.api-url { font-family: var(--mono); color: var(--blue); }
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:100%;max-width:400px}
+.logo{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:2rem}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,#F59E0B,#F97316);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.logo h1{font-size:22px;font-weight:700}
+.logo span{font-size:12px;color:var(--text2);display:block}
+.tabs{display:flex;background:var(--surface2);border-radius:var(--radius-sm);padding:3px;margin-bottom:1.5rem}
+.tab{flex:1;padding:8px;text-align:center;border-radius:6px;cursor:pointer;font-size:14px;color:var(--text2);transition:all .15s}
+.tab.active{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+.field{margin-bottom:14px}
+.field label{font-size:11px;color:var(--text2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.field input{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:inherit;transition:border-color .15s}
+.field input:focus{outline:none;border-color:var(--sun)}
+.btn{width:100%;padding:11px;background:var(--sun);color:#000;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;transition:opacity .15s;font-family:inherit}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.msg{padding:8px 12px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;display:none}
+.msg.error{background:rgba(239,68,68,.1);color:var(--red);display:block}
+.msg.success{background:rgba(16,185,129,.1);color:var(--green);display:block}
+.divider{text-align:center;color:var(--text3);font-size:12px;margin:16px 0;position:relative}
+.divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--border)}
+.divider::before{left:0}.divider::after{right:0}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <div class="logo-icon">☀️</div>
-      <div>
-        <h1>SolarGrid</h1>
-        <span id="station-name">Quyosh Stansiyasi Monitoringi</span>
-      </div>
-    </div>
-    <div class="header-center">
-      <div class="status-pill">
-        <div class="status-dot" id="status-dot"></div>
-        <span id="status-text">Yuklanmoqda...</span>
-      </div>
-    </div>
-    <div class="header-right">
-      <button class="hbtn" onclick="openConnectModal()">🔌 Ulanish sozlamalari</button>
-      <button class="hbtn active" onclick="refreshData()">↻ Yangilash</button>
-    </div>
-  </div>
-</header>
-
-<!-- MAIN -->
-<div class="main">
-
-  <!-- API bar -->
-  <div class="api-bar">
-    <span>🔗 API:</span>
-    <span class="api-url" id="api-url-display">http://localhost:3001</span>
-    <span>•</span>
-    <span id="last-update">—</span>
-    <span style="margin-left:auto;cursor:pointer;color:var(--text3)" onclick="openConnectModal()">Sozlash →</span>
-  </div>
-
-  <!-- Summary -->
-  <div class="summary-grid">
-    <div class="sum-card power">
-      <div class="sum-label">Hozirgi quvvat</div>
-      <div class="sum-value" id="sum-power">—<span class="sum-unit">kW</span></div>
-      <div class="sum-sub" id="sum-cap">— dan —</div>
-    </div>
-    <div class="sum-card efficiency">
-      <div class="sum-label">Samaradorlik</div>
-      <div class="sum-value" id="sum-eff">—<span class="sum-unit">%</span></div>
-      <div class="sum-sub">Hozirgi holat</div>
-    </div>
-    <div class="sum-card panels">
-      <div class="sum-label">Panellar holati</div>
-      <div class="sum-value" id="sum-panels">—</div>
-      <div class="sum-sub" id="sum-panels-sub">— muammo</div>
-    </div>
-    <div class="sum-card alerts">
-      <div class="sum-label">Ogohlantirishlar</div>
-      <div class="sum-value" id="sum-alerts">—</div>
-      <div class="sum-sub">E'tibor talab qiladi</div>
-    </div>
-    <div class="sum-card today">
-      <div class="sum-label">Bugun ishlab chiqarildi</div>
-      <div class="sum-value" id="sum-today">—<span class="sum-unit">kWh</span></div>
-      <div class="sum-sub">Taxminiy</div>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">☀️</div>
+    <div>
+      <h1>SolarGrid</h1>
+      <span>Quyosh stansiyasi monitoringi</span>
     </div>
   </div>
 
-  <!-- Content grid -->
-  <div class="content-grid">
+  <div class="tabs">
+    <div class="tab active" id="tab-login" onclick="switchTab('login')">Kirish</div>
+    <div class="tab" id="tab-register" onclick="switchTab('register')">Ro'yxatdan o'tish</div>
+  </div>
 
-    <!-- Panel map -->
-    <div class="panel-section">
-      <div class="section-header">
-        <div class="section-title">⚡ Panel Xaritasi</div>
-        <div class="legend">
-          <div class="leg-item"><div class="leg-dot" style="background:rgba(16,185,129,0.5)"></div> Normal</div>
-          <div class="leg-item"><div class="leg-dot" style="background:rgba(245,158,11,0.6)"></div> Changlanish</div>
-          <div class="leg-item"><div class="leg-dot" style="background:rgba(249,115,22,0.5)"></div> Sust</div>
-          <div class="leg-item"><div class="leg-dot" style="background:rgba(239,68,68,0.5)"></div> Nosozlik</div>
-          <div class="leg-item"><div class="leg-dot" style="background:var(--surface3)"></div> O'chiq</div>
-        </div>
-      </div>
-      <div id="panel-map">
-        <div class="loading"><div class="spinner"></div> Panel ma'lumotlari yuklanmoqda...</div>
-      </div>
-    </div>
+  <div id="msg" class="msg"></div>
 
-    <!-- Right column -->
-    <div class="right-col">
+  <!-- Login -->
+  <div id="form-login">
+    <div class="field"><label>Email</label><input type="email" id="login-email" placeholder="email@example.com"></div>
+    <div class="field"><label>Parol</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+    <button class="btn" onclick="login()" id="btn-login">Kirish</button>
+  </div>
 
-      <!-- Weather -->
-      <div class="weather-card">
-        <div class="section-title" style="margin-bottom:1rem">🌤 Ob-havo & Prognoz</div>
-        <div id="weather-content">
-          <div class="loading"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-      <!-- Alerts -->
-      <div class="alerts-card">
-        <div class="section-header">
-          <div class="section-title">🔔 Ogohlantirishlar</div>
-        </div>
-        <div id="alerts-content">
-          <div class="loading"><div class="spinner"></div></div>
-        </div>
-      </div>
-
-    </div>
+  <!-- Register -->
+  <div id="form-register" style="display:none">
+    <div class="field"><label>Ism familiya</label><input type="text" id="reg-name" placeholder="Habibulla Buxorov"></div>
+    <div class="field"><label>Email</label><input type="email" id="reg-email" placeholder="email@example.com"></div>
+    <div class="field"><label>Parol</label><input type="password" id="reg-pass" placeholder="Kamida 6 ta belgi"></div>
+    <button class="btn" onclick="register()" id="btn-reg">Ro'yxatdan o'tish</button>
   </div>
 </div>
-
-<!-- Tooltip -->
-<div class="tooltip" id="tooltip"></div>
-
-<!-- Connection Modal -->
-<div class="modal-overlay" id="connect-modal" onclick="handleOverlay(event)">
-  <div class="modal-box">
-    <h2>🔌 Inverter Ulanish Sozlamalari</h2>
-
-    <div class="field">
-      <label>API server manzili</label>
-      <input type="text" id="conf-api-url" value="http://localhost:3001" placeholder="http://localhost:3001">
-    </div>
-
-    <div class="field">
-      <label>Stansiya nomi</label>
-      <input type="text" id="conf-name" placeholder="Toshkent Quyosh Stansiyasi">
-    </div>
-
-    <div class="field">
-      <label>Inverter turi</label>
-      <select id="conf-api-type" onchange="toggleApiFields()">
-        <option value="simulation">🧪 Simulyatsiya (test rejimi)</option>
-        <option value="growatt">🟢 Growatt</option>
-        <option value="huawei">🔴 Huawei FusionSolar</option>
-      </select>
-    </div>
-
-    <!-- Growatt fields -->
-    <div class="api-section" id="growatt-fields">
-      <h3>Growatt hisobi</h3>
-      <div class="field">
-        <label>Username (email)</label>
-        <input type="text" id="conf-gr-user" placeholder="email@example.com">
-      </div>
-      <div class="field">
-        <label>Parol</label>
-        <input type="password" id="conf-gr-pass" placeholder="••••••••">
-      </div>
-      <div class="field">
-        <label>Plant ID</label>
-        <input type="text" id="conf-gr-plant" placeholder="123456">
-      </div>
-    </div>
-
-    <!-- Huawei fields -->
-    <div class="api-section" id="huawei-fields">
-      <h3>Huawei FusionSolar hisobi</h3>
-      <div class="field">
-        <label>Username</label>
-        <input type="text" id="conf-hw-user" placeholder="username">
-      </div>
-      <div class="field">
-        <label>System Code</label>
-        <input type="password" id="conf-hw-code" placeholder="••••••••">
-      </div>
-      <div class="field">
-        <label>Station DN</label>
-        <input type="text" id="conf-hw-dn" placeholder="NE=12345">
-      </div>
-    </div>
-
-    <!-- Stansiya sozlamalari -->
-    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-      <h3 style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Stansiya tuzilmasi</h3>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-      <div class="field">
-        <label>Qatorlar soni</label>
-        <input type="number" id="conf-rows" value="6" min="1" max="20">
-      </div>
-      <div class="field">
-        <label>Qatordagi panel</label>
-        <input type="number" id="conf-cols" value="8" min="1" max="30">
-      </div>
-      <div class="field">
-        <label>Quvvat (kW)</label>
-        <input type="number" id="conf-kw" value="24" min="1">
-      </div>
-    </div>
-
-    <div id="test-result" class="test-result"></div>
-
-    <div class="modal-actions">
-      <button class="btn-test" onclick="testConnection()">🔍 Ulanishni sinash</button>
-      <button class="btn-sec" onclick="closeModal()">Bekor</button>
-      <button class="btn-primary" onclick="saveConfig()">Saqlash</button>
-    </div>
-  </div>
-</div>
-
-<!-- Toast -->
-<div class="toast" id="toast"></div>
 
 <script>
-// ─── Config ──────────────────────────────────────────────
-let apiBase = 'https://solargrid-backend.onrender.com';
-let refreshInterval = null;
-let currentPanels = [];
+const SUPABASE_URL = 'https://jotkjskrublgdfdmgjqa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ZthweJ6NfQE9_o7RTAhJ2Q_ECAQHqZG';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ─── API helpers ─────────────────────────────────────────
-async function apiFetch(path) {
-  const res = await fetch(apiBase + path);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+function switchTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-register').classList.toggle('active', tab==='register');
+  document.getElementById('form-login').style.display = tab==='login' ? '' : 'none';
+  document.getElementById('form-register').style.display = tab==='register' ? '' : 'none';
+  hideMsg();
 }
 
-async function apiPost(path, body) {
-  const res = await fetch(apiBase + path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  return res.json();
+function showMsg(text, type) {
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = 'msg ' + type;
+}
+function hideMsg() {
+  document.getElementById('msg').className = 'msg';
 }
 
-// ─── Load dashboard ──────────────────────────────────────
-async function loadDashboard() {
-  try {
-    const data = await apiFetch('/api/dashboard');
-    if (!data.success) throw new Error(data.message);
-
-    // Status
-    document.getElementById('status-dot').style.background = 'var(--green)';
-    document.getElementById('status-text').textContent = `${data.station.name} • Jonli`;
-    document.getElementById('station-name').textContent = data.station.name;
-    document.getElementById('last-update').textContent = 'Yangilandi: ' + new Date().toLocaleTimeString('uz-UZ');
-
-    // Summary
-    const s = data.summary;
-    document.getElementById('sum-power').innerHTML = `${s.total_power_kw}<span class="sum-unit">kW</span>`;
-    document.getElementById('sum-cap').textContent = `${s.capacity_kw} kW dan`;
-    document.getElementById('sum-eff').innerHTML = `${s.efficiency_pct}<span class="sum-unit">%</span>`;
-    document.getElementById('sum-panels').textContent = `${s.normal_panels}/${s.total_panels}`;
-    document.getElementById('sum-panels-sub').textContent = `${s.problem_panels} muammo`;
-    document.getElementById('sum-alerts').textContent = s.alerts_count;
-    document.getElementById('sum-today').innerHTML = `${s.today_kwh}<span class="sum-unit">kWh</span>`;
-
-    // Panels
-    currentPanels = data.panels;
-    renderPanelMap(data.panels);
-
-    // Weather
-    renderWeather(data.weather);
-
-    // Alerts
-    renderAlerts(data.alerts);
-
-  } catch (err) {
-    document.getElementById('status-dot').style.background = 'var(--red)';
-    document.getElementById('status-text').textContent = 'Server bilan ulanish yo\'q';
-    showToast('⚠️ API ga ulanib bo\'lmadi. Simulyatsiya rejimida ishlayapti.');
-    loadSimulation();
-  }
+async function login() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  if (!email || !pass) return showMsg('Email va parolni kiriting', 'error');
+  const btn = document.getElementById('btn-login');
+  btn.disabled = true; btn.textContent = 'Kirilmoqda...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { showMsg(error.message, 'error'); btn.disabled=false; btn.textContent='Kirish'; }
+  else window.location.href = 'dashboard.html';
 }
 
-// ─── Simulyatsiya (API yo'q bo'lganda) ───────────────────
-function loadSimulation() {
-  const rows = 6, cols = 8;
-  const panels = [];
-  const hour = new Date().getHours();
-  const isSunny = hour >= 6 && hour <= 19;
-  const solarFactor = isSunny ? Math.sin(((hour-6)/13)*Math.PI)*(0.8+Math.random()*0.2) : 0;
-
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const id = `${String.fromCharCode(65+r)}${c+1}`;
-      let eff = 0.85 + Math.random()*0.15;
-      let status = 'normal', issue = null;
-      const rnd = Math.random();
-      if (rnd < 0.04) { eff *= 0.45+Math.random()*0.2; status='dirty'; issue='Changlanish ehtimoli yuqori'; }
-      else if (rnd < 0.06) { eff *= 0.1; status='fault'; issue='Sim uzilgan yoki shikast'; }
-      else if (rnd < 0.08) { eff *= 0.65; status='weak'; issue='Quvvat pasaygan'; }
-      const maxP = (24000/48);
-      const power_w = isSunny ? Math.round(maxP*solarFactor*eff) : 0;
-      panels.push({id, row:String.fromCharCode(65+r), col:c+1, power_w, efficiency:Math.round(eff*100), status, issue,
-        voltage:isSunny?Math.round((36+Math.random()*4)*10)/10:0,
-        temperature:Math.round((25+Math.random()*20+(isSunny?15:0))*10)/10});
-    }
-  }
-
-  currentPanels = panels;
-  renderPanelMap(panels);
-
-  const totalPower = panels.reduce((s,p)=>s+p.power_w,0);
-  document.getElementById('sum-power').innerHTML = `${Math.round(totalPower/100)/10}<span class="sum-unit">kW</span>`;
-  document.getElementById('sum-cap').textContent = '24 kW dan';
-  document.getElementById('sum-eff').innerHTML = `${Math.round(totalPower/24000*100)}<span class="sum-unit">%</span>`;
-  const problems = panels.filter(p=>p.status!=='normal').length;
-  document.getElementById('sum-panels').textContent = `${48-problems}/48`;
-  document.getElementById('sum-panels-sub').textContent = `${problems} muammo`;
-
-  const alerts = analyzeLocally(panels, {solar_radiation:850});
-  document.getElementById('sum-alerts').textContent = alerts.length;
-  document.getElementById('sum-today').innerHTML = `${Math.round(totalPower*6/1000*10)/10}<span class="sum-unit">kWh</span>`;
-
-  renderWeather({
-    temp:32, description:'Quyoshli', clouds:10, wind_speed:3.2,
-    solar_radiation:850, uv_index:8, icon:'☀️',
-    forecast:[
-      {day:'Ertaga',temp:34,clouds:5,production_estimate:95},
-      {day:'Indiniga',temp:29,clouds:40,production_estimate:65},
-      {day:'3 kundan keyin',temp:27,clouds:70,production_estimate:35},
-    ]
-  });
-  renderAlerts(alerts);
+async function register() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  if (!name || !email || !pass) return showMsg('Barcha maydonlarni to\'ldiring', 'error');
+  if (pass.length < 6) return showMsg('Parol kamida 6 ta belgi bo\'lishi kerak', 'error');
+  const btn = document.getElementById('btn-reg');
+  btn.disabled = true; btn.textContent = 'Ro\'yxatdan o\'tilmoqda...';
+  const { error } = await sb.auth.signUp({ email, password: pass, options: { data: { full_name: name } } });
+  if (error) { showMsg(error.message, 'error'); btn.disabled=false; btn.textContent="Ro'yxatdan o'tish"; }
+  else showMsg('✅ Muvaffaqiyatli! Emailingizni tasdiqlang, keyin kiring.', 'success');
 }
 
-function analyzeLocally(panels, weather) {
-  const alerts = [];
-  const solarGood = weather.solar_radiation > 500;
-  const rows = {};
-  panels.forEach(p=>{ if(!rows[p.row]) rows[p.row]=[]; rows[p.row].push(p); });
-
-  Object.entries(rows).forEach(([row, rp])=>{
-    if(rp.every(p=>p.power_w<10) && solarGood)
-      alerts.push({type:'wire_cut',severity:'critical',title:`${row}-qator: Sim uzilgan`,
-        description:`${row}-qatordagi barcha panellar ishlamayapti. Ob-havo yaxshi.`,
-        action:`${row}-qator kabellarini tekshiring`});
-  });
-
-  panels.forEach(p=>{
-    if(!solarGood||p.status!=='dirty') return;
-    alerts.push({type:'dirty',severity:'warning',title:`Panel ${p.id}: Changlanish`,
-      description:`Panel ${p.id} qo'shnilaridan sezilarli darajada kam ishlamoqda.`,
-      action:`Panel ${p.id} ni tozalang`});
-  });
-
-  panels.forEach(p=>{
-    if(!solarGood||p.status!=='fault') return;
-    alerts.push({type:'fault',severity:'critical',title:`Panel ${p.id}: Nosozlik`,
-      description:`Panel ${p.id} deyarli ishlamayapti. Fizik tekshiruv kerak.`,
-      action:`Panel ${p.id} ni ko'zdan kechiring`});
-  });
-
-  return alerts;
-}
-
-// ─── Render: Panel Map ───────────────────────────────────
-function renderPanelMap(panels) {
-  const rows = [...new Set(panels.map(p=>p.row))].sort();
-  const cols = [...new Set(panels.map(p=>p.col))].sort((a,b)=>a-b);
-
-  const grid = document.createElement('div');
-  grid.className = 'panel-grid-wrap';
-
-  const inner = document.createElement('div');
-  inner.className = 'panel-grid';
-  inner.style.gridTemplateColumns = `22px repeat(${cols.length}, 52px)`;
-
-  // Header row — col numbers
-  inner.appendChild(Object.assign(document.createElement('div'),{style:'width:22px'}));
-  cols.forEach(c=>{
-    const lbl = document.createElement('div');
-    lbl.style.cssText='text-align:center;font-size:10px;color:var(--text3);padding-bottom:3px;font-family:var(--mono)';
-    lbl.textContent = c;
-    inner.appendChild(lbl);
-  });
-
-  rows.forEach(row=>{
-    // Row label
-    const rl = document.createElement('div');
-    rl.className = 'row-label';
-    rl.textContent = row;
-    inner.appendChild(rl);
-
-    cols.forEach(col=>{
-      const panel = panels.find(p=>p.row===row && p.col===col);
-      const cell = document.createElement('div');
-      cell.className = 'panel-cell ' + (panel ? panel.status : 'off');
-
-      if(panel) {
-        cell.innerHTML = `<span class="pid">${panel.id}</span><span class="pw">${panel.power_w>0?Math.round(panel.power_w)+'W':'—'}</span>`;
-        cell.addEventListener('mouseenter', e => showTooltip(e, panel));
-        cell.addEventListener('mousemove', e => moveTooltip(e));
-        cell.addEventListener('mouseleave', hideTooltip);
-      } else {
-        cell.innerHTML = '<span class="pid">—</span>';
-      }
-      inner.appendChild(cell);
-    });
-  });
-
-  grid.appendChild(inner);
-  const container = document.getElementById('panel-map');
-  container.innerHTML = '';
-  container.appendChild(grid);
-}
-
-// ─── Render: Weather ─────────────────────────────────────
-function renderWeather(w) {
-  const iconMap = {'01d':'☀️','02d':'🌤','03d':'⛅','04d':'☁️','09d':'🌧','10d':'🌦','11d':'⛈','13d':'❄️','50d':'🌫'};
-  const icon = iconMap[w.icon] || w.icon || '🌡️';
-  const dayNight = w.is_day ? '🌞 Kunduz' : '🌙 Tun';
-
-  document.getElementById('weather-content').innerHTML = `
-    <div class="weather-main">
-      <div class="weather-icon">${icon}</div>
-      <div>
-        <div class="weather-temp">${w.temp}°<span style="font-size:18px">C</span></div>
-        <div class="weather-desc">${w.description}</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">${dayNight}</div>
-      </div>
-    </div>
-    <div class="weather-stats">
-      <div class="wstat"><div class="wstat-label">Quyosh radiatsiyasi</div><div class="wstat-val">${w.solar_radiation} <span style="font-size:11px;color:var(--text3)">W/m²</span></div></div>
-      <div class="wstat"><div class="wstat-label">UV indeks</div><div class="wstat-val">${w.uv_index}</div></div>
-      <div class="wstat"><div class="wstat-label">Bulutlilik</div><div class="wstat-val">${w.clouds}%</div></div>
-      <div class="wstat"><div class="wstat-label">Shamol</div><div class="wstat-val">${w.wind_speed} <span style="font-size:11px;color:var(--text3)">m/s</span></div></div>
-      <div class="wstat"><div class="wstat-label">🌅 Quyosh chiqishi</div><div class="wstat-val" style="font-size:13px">${w.sunrise || '—'}</div></div>
-      <div class="wstat"><div class="wstat-label">🌇 Quyosh botishi</div><div class="wstat-val" style="font-size:13px">${w.sunset || '—'}</div></div>
-    </div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em">3 kunlik ishlab chiqarish prognozi</div>
-    <div class="forecast">
-      ${(w.forecast||[]).map(f=>`
-        <div class="fc-item">
-          <span class="fc-day" style="min-width:80px">${f.day} <span style="color:var(--text3);font-size:10px">${f.temp}°</span></span>
-          <div class="fc-bar-wrap"><div class="fc-bar" style="width:${f.production_estimate}%"></div></div>
-          <span class="fc-pct" style="color:${f.production_estimate>70?'var(--green)':f.production_estimate>40?'var(--sun)':'var(--text2)'}">${f.production_estimate}%</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-// ─── Render: Alerts ──────────────────────────────────────
-function renderAlerts(alerts) {
-  const container = document.getElementById('alerts-content');
-  if(!alerts.length) {
-    container.innerHTML = `<div class="no-alerts"><div class="no-alerts-icon">✅</div>Hamma narsa normal ishlayapti</div>`;
-    return;
-  }
-  container.innerHTML = alerts.map(a=>`
-    <div class="alert-item ${a.severity}">
-      <div class="alert-title">${a.type==='wire_cut'?'⚡':a.type==='dirty'?'🌫':a.type==='fault'?'❌':'⚠️'} ${a.title}</div>
-      <div class="alert-desc">${a.description}</div>
-      <span class="alert-action">→ ${a.action}</span>
-    </div>
-  `).join('');
-}
-
-// ─── Tooltip ─────────────────────────────────────────────
-function showTooltip(e, panel) {
-  const tip = document.getElementById('tooltip');
-  const statusLabel = {normal:'Normal ✓',dirty:'Changlanish ⚠️',fault:'Nosozlik ❌',weak:'Sust ⚠️',off:'O\'chiq'};
-  tip.innerHTML = `
-    <div class="tip-id">Panel ${panel.id}</div>
-    <div class="tip-row"><span>Quvvat</span><span>${panel.power_w} W</span></div>
-    <div class="tip-row"><span>Kuchlanish</span><span>${panel.voltage} V</span></div>
-    <div class="tip-row"><span>Tok</span><span>${panel.current} A</span></div>
-    <div class="tip-row"><span>Temperatura</span><span>${panel.temperature}°C</span></div>
-    <div class="tip-row"><span>Samaradorlik</span><span>${panel.efficiency}%</span></div>
-    <div class="tip-row"><span>Holat</span><span>${statusLabel[panel.status]||panel.status}</span></div>
-    ${panel.issue ? `<div class="tip-issue ${panel.status==='dirty'?'dirty':''}">${panel.issue}</div>` : ''}
-  `;
-  tip.classList.add('show');
-  moveTooltip(e);
-}
-function moveTooltip(e) {
-  const tip = document.getElementById('tooltip');
-  const x = e.clientX + 14;
-  const y = e.clientY + 14;
-  tip.style.left = Math.min(x, window.innerWidth-200)+'px';
-  tip.style.top = Math.min(y, window.innerHeight-220)+'px';
-}
-function hideTooltip() { document.getElementById('tooltip').classList.remove('show'); }
-
-// ─── Connection modal ─────────────────────────────────────
-function openConnectModal() { document.getElementById('connect-modal').classList.add('open'); }
-function closeModal() { document.getElementById('connect-modal').classList.remove('open'); }
-function handleOverlay(e) { if(e.target===document.getElementById('connect-modal')) closeModal(); }
-
-function toggleApiFields() {
-  const type = document.getElementById('conf-api-type').value;
-  document.getElementById('growatt-fields').classList.toggle('show', type==='growatt');
-  document.getElementById('huawei-fields').classList.toggle('show', type==='huawei');
-}
-
-async function testConnection() {
-  const result = document.getElementById('test-result');
-  result.className='test-result';
-  result.textContent='Ulanish tekshirilmoqda...';
-  result.style.display='block';
-  try {
-    const base = document.getElementById('conf-api-url').value;
-    const res = await fetch(base+'/api/station/test-connection', {method:'POST'});
-    const data = await res.json();
-    if(data.success) {
-      result.className='test-result success';
-      result.textContent='✓ '+data.message;
-    } else {
-      result.className='test-result error';
-      result.textContent='✗ '+data.message;
-    }
-  } catch(err) {
-    result.className='test-result error';
-    result.textContent='✗ Server ga ulanib bo\'lmadi: '+err.message;
-  }
-}
-
-async function saveConfig() {
-  const newBase = document.getElementById('conf-api-url').value.trim();
-  const type = document.getElementById('conf-api-type').value;
-  apiBase = newBase;
-  document.getElementById('api-url-display').textContent = newBase;
-
-  try {
-    await apiPost('/api/station/config', {
-      name: document.getElementById('conf-name').value || undefined,
-      api_type: type,
-      rows: parseInt(document.getElementById('conf-rows').value),
-      panelsPerRow: parseInt(document.getElementById('conf-cols').value),
-      capacity_kw: parseFloat(document.getElementById('conf-kw').value),
-      growatt: type==='growatt' ? {
-        username: document.getElementById('conf-gr-user').value,
-        password: document.getElementById('conf-gr-pass').value,
-        plant_id: document.getElementById('conf-gr-plant').value,
-      } : undefined,
-      huawei: type==='huawei' ? {
-        username: document.getElementById('conf-hw-user').value,
-        system_code: document.getElementById('conf-hw-code').value,
-        station_dn: document.getElementById('conf-hw-dn').value,
-      } : undefined,
-    });
-    showToast('✅ Sozlamalar saqlandi');
-  } catch(err) {
-    showToast('⚠️ Saqlash muvaffaqiyatsiz — lokal rejimda ishlayapti');
-  }
-
-  closeModal();
-  loadDashboard();
-}
-
-function refreshData() { loadDashboard(); }
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 3000);
-}
-
-// ─── Auto refresh (30 sekund) ─────────────────────────────
-clearInterval(refreshInterval);
-refreshInterval = setInterval(loadDashboard, 30000);
-
-// ─── Init ─────────────────────────────────────────────────
-loadDashboard();
+// Allaqachon kirgan bo'lsa dashboard ga o'tkazish
+sb.auth.getSession().then(({ data }) => {
+  if (data.session) window.location.href = 'dashboard.html';
+});
 </script>
 </body>
 </html>
